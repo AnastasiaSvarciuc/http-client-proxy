@@ -29,32 +29,24 @@ app.Map("/{**catchall}", async (HttpContext context) =>
     context.Response.ContentType = "text/html; charset=utf-8";
     await context.Response.WriteAsync(doc.DocumentNode.OuterHtml);
 });
-void RewriteResourceUrls(HtmlNode node)
-{
-    if (node.NodeType == HtmlNodeType.Element)
-    {
-        foreach (var attr in new[] { "src", "href" })
-        {
-            var url = node.GetAttributeValue(attr, null);
-            if (!string.IsNullOrEmpty(url))
-            {
-                // Rewrite absolute URLs to go through proxy
-                if (url.StartsWith("http://") || url.StartsWith("https://"))
-                    node.SetAttributeValue(attr, "/" + url);
-            }
-        }
-    }
-    foreach (var child in node.ChildNodes)
-        RewriteResourceUrls(child);
-}
+
 void ModifyTextNodes(HtmlNode node)
 {
+    var parent = node.ParentNode;
+    if (parent != null && (
+        parent.Name.Equals("script", StringComparison.OrdinalIgnoreCase) ||
+        parent.Name.Equals("style", StringComparison.OrdinalIgnoreCase) ||
+        parent.Name.Equals("noscript", StringComparison.OrdinalIgnoreCase)))
+    {
+        return;
+    }
+
     if (node.NodeType == HtmlNodeType.Text)
     {
         node.InnerHtml = System.Text.RegularExpressions.Regex.Replace(
             node.InnerHtml,
             @"\b\w{6}\b",
-            m => m.Value + " TM"
+            m => m.Value + "™"
         );
     }
     foreach (var child in node.ChildNodes)
